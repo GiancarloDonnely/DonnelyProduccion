@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Donnely · Análisis Histórico de Capacidad</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="config_historico.js"></script>
+<style>
+:root{
+  --bg:#0a0d14; --bg2:#0e131d; --card:#121826; --card2:#171f30;
+  --line:#1e2738; --line2:#2a3850;
+  --ink:#eef2f8; --mut:#8a99b3; --dim:#56657f;
+  --cyan:#2dd4bf; --amber:#fbbf24; --red:#f43f5e; --green:#34d399;
+  --blue:#60a5fa; --violet:#a78bfa; --orange:#fb923c; --pink:#f472b6;
+  --mono:'Roboto Mono','SF Mono',ui-monospace,monospace;
+  --sans:'Inter',-apple-system,system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:13px;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:5px}
+
+.top{background:linear-gradient(180deg,#0e131d,#0a0d14);border-bottom:1px solid var(--line);
+  padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.brand{display:flex;align-items:center;gap:15px}
+.mark{width:42px;height:42px;background:linear-gradient(135deg,var(--cyan),#0d7a6e);border-radius:11px;
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:19px;color:#04120e}
+.brand-t{font-weight:700;font-size:15.5px;letter-spacing:-.2px}
+.brand-s{font-size:10px;color:var(--dim);font-family:var(--mono);text-transform:uppercase;letter-spacing:1.8px}
+.status{font-family:var(--mono);font-size:11px;color:var(--mut)}
+
+.tabs{background:var(--bg2);border-bottom:1px solid var(--line);padding:0 28px;display:flex;gap:3px;overflow-x:auto}
+.tab{padding:14px 20px;font-size:12.5px;font-weight:500;color:var(--dim);cursor:pointer;border:none;background:none;
+  border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}
+.tab:hover{color:var(--mut)}.tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+
+.wrap{padding:24px 28px;max-width:1680px;margin:0 auto}
+.pg{display:none}.pg.on{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:22px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px 18px;position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--ac,var(--cyan))}
+.kpi-l{font-size:9.5px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.kpi-v{font-size:30px;font-weight:800;letter-spacing:-1.5px;line-height:1;font-family:var(--mono)}
+.kpi-s{font-size:10px;color:var(--dim);margin-top:6px}
+
+.sect{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:1.3px;
+  margin:8px 0 14px;display:flex;align-items:center;gap:9px}
+.sect::before{content:'';width:16px;height:2px;background:var(--cyan)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:20px;margin-bottom:16px}
+.card-t{font-size:14px;font-weight:700;margin-bottom:3px}
+.card-sub{font-size:10.5px;color:var(--dim);margin-bottom:18px}
+.chart-box{position:relative;height:340px}
+.chart-box.tall{height:420px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{background:var(--bg2)}
+th{padding:11px 13px;text-align:left;font-size:9.5px;font-weight:700;color:var(--dim);text-transform:uppercase;
+  letter-spacing:.6px;white-space:nowrap;border-bottom:1px solid var(--line)}
+td{padding:10px 13px;border-bottom:1px solid rgba(30,39,56,.55)}
+tbody tr:hover td{background:rgba(45,212,191,.04)}
+tbody tr:last-child td{border-bottom:none}
+.num{font-family:var(--mono);text-align:right}
+.bar-inline{height:7px;background:#0a131c;border-radius:4px;overflow:hidden;min-width:60px;flex:1}
+.bar-inline-fl{height:100%;border-radius:4px}
+.flex{display:flex;align-items:center;gap:9px}
+
+.chip{display:inline-block;font-size:9px;font-weight:700;padding:2.5px 8px;border-radius:5px;letter-spacing:.3px}
+.c-fab{background:rgba(251,146,60,.15);color:var(--orange)}
+.c-imp{background:rgba(96,165,250,.15);color:var(--blue)}
+.c-pn{background:rgba(45,212,191,.15);color:var(--cyan)}
+
+.note{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:13px 16px;font-size:11px;
+  color:var(--mut);border-left:2px solid var(--line2);margin-bottom:18px;line-height:1.65}
+.loading{text-align:center;padding:70px 20px;color:var(--dim)}
+.spinner{display:inline-block;width:30px;height:30px;border:3px solid var(--line2);border-top-color:var(--cyan);
+  border-radius:50%;animation:spin 1s linear infinite;margin-bottom:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.progress-load{font-family:var(--mono);font-size:11px;color:var(--mut);margin-top:8px}
+
+.insight{background:linear-gradient(135deg,rgba(45,212,191,.07),rgba(96,165,250,.05));
+  border:1px solid var(--line2);border-radius:11px;padding:15px 18px;margin-bottom:14px;font-size:12px;line-height:1.7;color:var(--ink)}
+.insight strong{color:var(--cyan)}
+.insight .big{font-family:var(--mono);font-size:17px;font-weight:800;color:var(--cyan)}
+
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:11px}
+.legend-i{display:flex;align-items:center;gap:7px;color:var(--mut)}
+.legend-dot{width:11px;height:11px;border-radius:3px}
+
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}.row2,.row3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="brand">
+    <div class="mark">D</div>
+    <div>
+      <div class="brand-t">Análisis Histórico de Capacidad</div>
+      <div class="brand-s">Donnely · Operaciones · 2025–2026</div>
+    </div>
+  </div>
+  <div class="status" id="status">Cargando…</div>
+</div>
+
+<div class="tabs">
+  <button class="tab on" onclick="nav('capacidad',this)">⚡ Capacidad por Canal</button>
+  <button class="tab" onclick="nav('despachos',this)">🚚 Despachos por Mes</button>
+  <button class="tab" onclick="nav('clientes',this)">🏔 Volumen por Cliente</button>
+  <button class="tab" onclick="nav('ciclo',this)">⏱ Tiempos de Ciclo</button>
+  <button class="tab" onclick="nav('plazos',this)">🎯 Cumplimiento de Plazos</button>
+  <button class="tab" onclick="nav('tabla',this)">📋 Datos Mensuales</button>
+</div>
+
+<div class="wrap">
+  <div id="pg-capacidad" class="pg on"><div class="loading"><div class="spinner"></div><div>Cargando datos históricos…</div><div class="progress-load" id="prog">Conectando con Google Sheets</div></div></div>
+  <div id="pg-despachos" class="pg"></div>
+  <div id="pg-clientes" class="pg"></div>
+  <div id="pg-ciclo" class="pg"></div>
+  <div id="pg-plazos" class="pg"></div>
+  <div id="pg-tabla" class="pg"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+//  CARGA Y PARSEO
+// ════════════════════════════════════════════════════════════════════
+var DATOS = { meses: [], p1:{}, sc:{}, p2:{}, p3:{} };  // por mes
+var ANALISIS = null;
+
+function parseCSV(text){
+  var rows=[], row=[], val='', inQ=false;
+  for(var i=0;i<text.length;i++){
+    var c=text[i], n=text[i+1];
+    if(inQ){
+      if(c==='"'&&n==='"'){val+='"';i++;}
+      else if(c==='"'){inQ=false;}
+      else val+=c;
+    } else {
+      if(c==='"')inQ=true;
+      else if(c===','){row.push(val);val='';}
+      else if(c==='\r'){}
+      else if(c==='\n'){row.push(val);rows.push(row);row=[];val='';}
+      else val+=c;
+    }
+  }
+  if(val!==''||row.length){row.push(val);rows.push(row);}
+  return rows;
+}
+function fetchCSV(url){
+  if(!url) return Promise.resolve(null);
+  return fetch(url).then(function(r){return r.ok?r.text():null;})
+    .then(function(t){return t?parseCSV(t):null;})
+    .catch(function(){return null;});
+}
+function findHeader(rows, keywords){
+  if(!rows) return 0;
+  for(var i=0;i<Math.min(rows.length,8);i++){
+    var j=rows[i].join('|').toUpperCase();
+    for(var k=0;k<keywords.length;k++) if(j.indexOf(keywords[k])>=0) return i;
+  }
+  return 0;
+}
+function colIndex(header, names){
+  if(!header) return -1;
+  var H=header.map(function(h){return (h||'').toString().trim().toUpperCase();});
+  for(var n=0;n<names.length;n++){
+    var t=names[n].toUpperCase();
+    var idx=H.indexOf(t); if(idx>=0) return idx;
+    for(var i=0;i<H.length;i++) if(H[i].indexOf(t)>=0) return i;
+  }
+  return -1;
+}
+function cleanNum(v){
+  if(v==null) return 0;
+  var s=(''+v).replace(/[^\d.,-]/g,'').replace(/\./g,'').replace(',','.');
+  var n=parseFloat(s); return isNaN(n)?0:Math.round(n);
+}
+function cleanNP(v){
+  if(v==null) return null;
+  var m=(''+v).match(/\d+/); return m?parseInt(m[0],10):null;
+}
+function parseFecha(v){
+  if(!v) return null;
+  var s=(''+v).trim();
+  var m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if(m){var d=new Date(+m[3],+m[2]-1,+m[1]); return (d.getFullYear()>=2020&&d.getFullYear()<=2030)?d:null;}
+  m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m){var d2=new Date(+m[1],+m[2]-1,+m[3]); return (d2.getFullYear()>=2020&&d2.getFullYear()<=2030)?d2:null;}
+  return null;
+}
+function origenDe(proc){
+  var p=(proc||'').toString().toUpperCase();
+  if(p.indexOf('FABRIC')>=0||p.indexOf('CONFEC')>=0) return 'fab';
+  if(p.indexOf('IMPORT')>=0) return 'imp';
+  return 'pn';
+}
+function fmtNum(n){return Math.round(n).toLocaleString('es-CL');}
+function normCliente(c){
+  if(!c) return 'SIN CLIENTE';
+  var s=(''+c).trim().toUpperCase();
+  if(s.indexOf(' - ')>=0) s=s.split(' - ').pop().trim();
+  var map={
+    'SIERRA GORDA':'SIERRA GORDA','MANTOS DE ORO':'MANTOS DE ORO','MANTOS':'MANTOS DE ORO',
+    'CANDELARIA':'CANDELARIA','PACIFICO':'CIA MINERA DEL PACIFICO','CMP':'CIA MINERA DEL PACIFICO',
+    'PUCOBRE':'PUCOBRE','PUNTA DEL COBRE':'PUCOBRE','KOZAN':'ATACAMA KOZAN',
+    'PESQUERA':'PESQUERA BAHIA CALDERA','ALTAMIRA':'ALTAMIRA CONSULTORES'
+  };
+  for(var k in map){ if(s.indexOf(k)>=0) return map[k]; }
+  return s.length>28?s.slice(0,28):s;
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  MOTOR DE ANÁLISIS
+// ════════════════════════════════════════════════════════════════════
+function analizar(){
+  var meses = FUENTES.map(function(f){return {mes:f.mes,label:f.label};});
+  var porCanal = {};
+  var porCliente = {};
+  var clienteMes = {};
+  var ciclos = {};
+  var plazos = {};
+
+  FUENTES.forEach(function(f){
+    var rows = DATOS.p1[f.mes];
+    porCanal[f.mes]={fab:0,imp:0,pn:0,total:0};
+    plazos[f.mes]={aTiempo:0,atrasado:0,sinDato:0};
+    ciclos[f.mes]=[];
+    clienteMes[f.mes]={};
+    if(!rows) return;
+    var hr=findHeader(rows,['NP']);
+    var H=rows[hr];
+    var cNP=colIndex(H,['NP']), cCli=colIndex(H,['CLIENTE']), cProc=colIndex(H,['PROCEDENCIA']),
+        cCant=colIndex(H,['CANT SOLICITADA','CANTIDAD']), cIng=colIndex(H,['F. INGRESO','INGRESO']),
+        cSalEst=colIndex(H,['F. SALIDA','SALIDA EST']), cDesp=colIndex(H,['F. DESPACHO','DESPACHO REAL']);
+    for(var i=hr+1;i<rows.length;i++){
+      var r=rows[i]; if(!r) continue;
+      var np=cleanNP(r[cNP]); if(np==null) continue;
+      var cant=cleanNum(r[cCant]); if(!cant) continue;
+      var org=origenDe(r[cProc]);
+      porCanal[f.mes][org]+=cant;
+      porCanal[f.mes].total+=cant;
+      var cli=normCliente(r[cCli]);
+      porCliente[cli]=(porCliente[cli]||0)+cant;
+      clienteMes[f.mes][cli]=(clienteMes[f.mes][cli]||0)+cant;
+      var fi=parseFecha(r[cIng]), fd=cDesp>=0?parseFecha(r[cDesp]):null;
+      if(fi&&fd){var dd=Math.round((fd-fi)/86400000); if(dd>=0&&dd<400) ciclos[f.mes].push(dd);}
+      var fse=cSalEst>=0?parseFecha(r[cSalEst]):null;
+      if(fd&&fse){ if(fd<=fse) plazos[f.mes].aTiempo++; else plazos[f.mes].atrasado++; }
+      else plazos[f.mes].sinDato++;
+    }
+  });
+
+  function stats(canal){
+    var vals = meses.map(function(m){return porCanal[m.mes][canal];}).filter(function(v){return v>0;});
+    if(!vals.length) return {prom:0,max:0,p75:0,min:0};
+    var sorted=vals.slice().sort(function(a,b){return a-b;});
+    var prom=vals.reduce(function(a,b){return a+b;},0)/vals.length;
+    var p75=sorted[Math.floor(sorted.length*0.75)];
+    return {prom:prom,max:Math.max.apply(null,vals),min:Math.min.apply(null,vals),p75:p75};
+  }
+
+  var cicloProm={};
+  meses.forEach(function(m){
+    var arr=ciclos[m.mes];
+    cicloProm[m.mes]=arr.length?Math.round(arr.reduce(function(a,b){return a+b;},0)/arr.length):null;
+  });
+
+  // ── DESPACHOS POR MES (reagrupado por fecha de despacho real) ──
+  // Recorre TODAS las hojas P1 y agrupa por el mes de la fecha de despacho,
+  // que puede diferir del mes de ingreso del pedido.
+  var despachoMes = {};   // 'YYYY-MM' -> {fab,imp,pn,total}
+  FUENTES.forEach(function(f){
+    var rows = DATOS.p1[f.mes];
+    if(!rows) return;
+    var hr=findHeader(rows,['NP']);
+    var H=rows[hr];
+    var cNP=colIndex(H,['NP']), cProc=colIndex(H,['PROCEDENCIA']),
+        cCant=colIndex(H,['CANT SOLICITADA','CANTIDAD']),
+        cDesp=colIndex(H,['F. DESPACHO','DESPACHO REAL']);
+    if(cDesp<0) return;
+    for(var i=hr+1;i<rows.length;i++){
+      var r=rows[i]; if(!r) continue;
+      var np=cleanNP(r[cNP]); if(np==null) continue;
+      var cant=cleanNum(r[cCant]); if(!cant) continue;
+      var fd=parseFecha(r[cDesp]); if(!fd) continue;
+      var ym=fd.getFullYear()+'-'+('0'+(fd.getMonth()+1)).slice(-2);
+      if(!despachoMes[ym]) despachoMes[ym]={fab:0,imp:0,pn:0,total:0};
+      var org=origenDe(r[cProc]);
+      despachoMes[ym][org]+=cant;
+      despachoMes[ym].total+=cant;
+    }
+  });
+  // Ordenar meses de despacho y darles label legible
+  var MESNOM=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var despMeses = Object.keys(despachoMes).sort().map(function(ym){
+    var p=ym.split('-');
+    return {mes:ym, label:MESNOM[parseInt(p[1],10)-1]+' '+p[0]};
+  });
+  function statsDesp(canal){
+    var vals=despMeses.map(function(m){return despachoMes[m.mes][canal];}).filter(function(v){return v>0;});
+    if(!vals.length) return {prom:0,max:0,p75:0,min:0};
+    var sorted=vals.slice().sort(function(a,b){return a-b;});
+    return {prom:vals.reduce(function(a,b){return a+b;},0)/vals.length,
+            max:Math.max.apply(null,vals),min:Math.min.apply(null,vals),
+            p75:sorted[Math.floor(sorted.length*0.75)]};
+  }
+
+  ANALISIS={
+    meses:meses, porCanal:porCanal, porCliente:porCliente, clienteMes:clienteMes,
+    ciclos:ciclos, cicloProm:cicloProm, plazos:plazos,
+    capFab:stats('fab'), capImp:stats('imp'), capPn:stats('pn'), capTotal:stats('total'),
+    despachoMes:despachoMes, despMeses:despMeses,
+    despFab:statsDesp('fab'), despImp:statsDesp('imp'), despPn:statsDesp('pn'), despTotal:statsDesp('total')
+  };
+}
+
+var COL={fab:'#fb923c',imp:'#60a5fa',pn:'#2dd4bf',total:'#a78bfa',green:'#34d399',amber:'#fbbf24',red:'#f43f5e',violet:'#a78bfa',cyan:'#2dd4bf'};
+var charts={};
+function destroyChart(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+Chart.defaults.color='#8a99b3';
+Chart.defaults.font.family="'Inter',system-ui,sans-serif";
+Chart.defaults.font.size=11;
+function gridCfg(){return {grid:{color:'rgba(30,39,56,.6)'},ticks:{color:'#8a99b3'}};}
+
+// ── VISTA 1 — CAPACIDAD ──
+function renderCapacidad(){
+  var A=ANALISIS, cont=document.getElementById('pg-capacidad');
+  var labels=A.meses.map(function(m){return m.label;});
+  var html='';
+  html+='<div class="note">La <strong>capacidad sostenible</strong> (percentil 75) es el volumen que cada canal supera el 25% de los meses — un objetivo realista, más útil que el promedio o el pico aislado. Las prendas se cuentan por mes de <em>ingreso</em> del pedido.</div>';
+  html+='<div class="kpis">';
+  html+=kpi('Fabricación Propia', fmtNum(A.capFab.p75), 'cap. sostenible/mes · máx '+fmtNum(A.capFab.max), COL.fab);
+  html+=kpi('Importación', fmtNum(A.capImp.p75), 'cap. sostenible/mes · máx '+fmtNum(A.capImp.max), COL.imp);
+  html+=kpi('Proveedor Nacional', fmtNum(A.capPn.p75), 'cap. sostenible/mes · máx '+fmtNum(A.capPn.max), COL.pn);
+  html+=kpi('Volumen total/mes', fmtNum(A.capTotal.prom), 'promedio · máx '+fmtNum(A.capTotal.max), COL.total);
+  html+='</div>';
+  var maxCanal = [['Fabricación',A.capFab.prom],['Importación',A.capImp.prom],['Proveedor Nacional',A.capPn.prom]]
+    .sort(function(a,b){return b[1]-a[1];})[0];
+  var mesPico = A.meses.map(function(m){return [m.label,A.porCanal[m.mes].total];})
+    .sort(function(a,b){return b[1]-a[1];})[0];
+  html+='<div class="insight">📊 El canal de mayor volumen promedio es <strong>'+maxCanal[0]+'</strong> con <span class="big">'+fmtNum(maxCanal[1])+'</span> prendas/mes. '+
+    'El mes pico histórico fue <strong>'+mesPico[0]+'</strong> con <span class="big">'+fmtNum(mesPico[1])+'</span> prendas ingresadas.</div>';
+  html+='<div class="card"><div class="card-t">Prendas ingresadas por mes y canal</div>'+
+    '<div class="card-sub">Volumen mensual descompuesto por origen — detecta estacionalidad y picos</div>'+
+    '<div class="chart-box tall"><canvas id="ch-canal"></canvas></div>'+
+    '<div class="legend">'+
+      '<div class="legend-i"><span class="legend-dot" style="background:'+COL.fab+'"></span>Fabricación Propia</div>'+
+      '<div class="legend-i"><span class="legend-dot" style="background:'+COL.imp+'"></span>Importación</div>'+
+      '<div class="legend-i"><span class="legend-dot" style="background:'+COL.pn+'"></span>Proveedor Nacional</div>'+
+    '</div></div>';
+  html+='<div class="row2">';
+  html+='<div class="card"><div class="card-t">Tendencia del volumen total</div>'+
+    '<div class="card-sub">Prendas totales ingresadas por mes</div>'+
+    '<div class="chart-box"><canvas id="ch-tend"></canvas></div></div>';
+  html+='<div class="card"><div class="card-t">Capacidad por canal: promedio vs máximo</div>'+
+    '<div class="card-sub">Margen entre operación típica y pico alcanzado</div>'+
+    '<div class="chart-box"><canvas id="ch-cap"></canvas></div></div>';
+  html+='</div>';
+  cont.innerHTML=html;
+
+  var dFab=A.meses.map(function(m){return A.porCanal[m.mes].fab;});
+  var dImp=A.meses.map(function(m){return A.porCanal[m.mes].imp;});
+  var dPn=A.meses.map(function(m){return A.porCanal[m.mes].pn;});
+  var dTot=A.meses.map(function(m){return A.porCanal[m.mes].total;});
+  destroyChart('ch-canal');
+  charts['ch-canal']=new Chart(document.getElementById('ch-canal'),{type:'bar',
+    data:{labels:labels,datasets:[
+      {label:'Fab. Propia',data:dFab,backgroundColor:COL.fab,borderRadius:3},
+      {label:'Importación',data:dImp,backgroundColor:COL.imp,borderRadius:3},
+      {label:'Prov. Nacional',data:dPn,backgroundColor:COL.pn,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},
+      scales:{x:Object.assign({stacked:true},gridCfg()),y:Object.assign({stacked:true,beginAtZero:true},gridCfg())}}});
+  destroyChart('ch-tend');
+  charts['ch-tend']=new Chart(document.getElementById('ch-tend'),{type:'line',
+    data:{labels:labels,datasets:[{label:'Total',data:dTot,borderColor:COL.total,
+      backgroundColor:'rgba(167,139,250,.12)',fill:true,tension:.3,borderWidth:2,pointBackgroundColor:COL.total,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:gridCfg(),y:Object.assign({beginAtZero:true},gridCfg())}}});
+  destroyChart('ch-cap');
+  charts['ch-cap']=new Chart(document.getElementById('ch-cap'),{type:'bar',
+    data:{labels:['Fab. Propia','Importación','Prov. Nacional'],datasets:[
+      {label:'Promedio',data:[A.capFab.prom,A.capImp.prom,A.capPn.prom],backgroundColor:'rgba(45,212,191,.5)',borderRadius:3},
+      {label:'Máximo',data:[A.capFab.max,A.capImp.max,A.capPn.max],backgroundColor:'rgba(45,212,191,.18)',borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12}}},
+      scales:{x:gridCfg(),y:Object.assign({beginAtZero:true},gridCfg())}}});
+}
+function kpi(label,val,sub,ac){
+  return '<div class="kpi" style="--ac:'+ac+'"><div class="kpi-l">'+label+'</div>'+
+    '<div class="kpi-v" style="color:'+ac+'">'+val+'</div><div class="kpi-s">'+sub+'</div></div>';
+}
+
+// ── VISTA: DESPACHOS POR MES ──
+function renderDespachos(){
+  var A=ANALISIS, cont=document.getElementById('pg-despachos');
+  var dm=A.despMeses;
+  var labels=dm.map(function(m){return m.label;});
+  var html='';
+  html+='<div class="note">A diferencia de "Capacidad por Canal" (que cuenta cuándo <em>ingresa</em> la demanda), aquí se cuenta cuándo las prendas <strong>salen despachadas</strong>, según su fecha de despacho real. Esto mide tu <strong>producción efectiva</strong>: lo que realmente sale por la puerta cada mes.</div>';
+
+  if(!dm.length){
+    html+='<div class="loading">No hay fechas de despacho registradas para analizar. Verifica que la columna "F. DESPACHO REAL" tenga datos.</div>';
+    cont.innerHTML=html; return;
+  }
+
+  html+='<div class="kpis">';
+  html+=kpi('Despacho sostenible', fmtNum(A.despTotal.p75), 'prendas/mes (p75) · máx '+fmtNum(A.despTotal.max), COL.cyan||COL.pn);
+  html+=kpi('Fab. despachada', fmtNum(A.despFab.prom), 'promedio/mes', COL.fab);
+  html+=kpi('Import. despachada', fmtNum(A.despImp.prom), 'promedio/mes', COL.imp);
+  html+=kpi('Prov.Nac. despachado', fmtNum(A.despPn.prom), 'promedio/mes', COL.pn);
+  html+='</div>';
+
+  var mesPico=dm.map(function(m){return [m.label,A.despachoMes[m.mes].total];})
+    .sort(function(a,b){return b[1]-a[1];})[0];
+  var totalDesp=dm.reduce(function(s,m){return s+A.despachoMes[m.mes].total;},0);
+  html+='<div class="insight">🚚 En el periodo despachaste <span class="big">'+fmtNum(totalDesp)+'</span> prendas en total. '+
+    'El mes de mayor despacho fue <strong>'+mesPico[0]+'</strong> con <span class="big">'+fmtNum(mesPico[1])+'</span> prendas que salieron por la puerta.</div>';
+
+  html+='<div class="card"><div class="card-t">Prendas despachadas por mes y canal</div>'+
+    '<div class="card-sub">Producción efectiva — agrupada por fecha de despacho real</div>'+
+    '<div class="chart-box tall"><canvas id="ch-desp"></canvas></div>'+
+    '<div class="legend">'+
+      '<div class="legend-i"><span class="legend-dot" style="background:'+COL.fab+'"></span>Fabricación Propia</div>'+
+      '<div class="legend-i"><span class="legend-dot" style="background:'+COL.imp+'"></span>Importación</div>'+
+      '<div class="legend-i"><span class="legend-dot" style="background:'+COL.pn+'"></span>Proveedor Nacional</div>'+
+    '</div></div>';
+
+  html+='<div class="row2">';
+  html+='<div class="card"><div class="card-t">Tendencia de despachos totales</div>'+
+    '<div class="card-sub">Prendas que salieron cada mes</div>'+
+    '<div class="chart-box"><canvas id="ch-desp-tend"></canvas></div></div>';
+  html+='<div class="card"><div class="card-t">Ingreso vs Despacho</div>'+
+    '<div class="card-sub">Demanda que entra (línea) vs producción que sale (barras)</div>'+
+    '<div class="chart-box"><canvas id="ch-desp-comp"></canvas></div></div>';
+  html+='</div>';
+
+  cont.innerHTML=html;
+
+  var dFab=dm.map(function(m){return A.despachoMes[m.mes].fab;});
+  var dImp=dm.map(function(m){return A.despachoMes[m.mes].imp;});
+  var dPn=dm.map(function(m){return A.despachoMes[m.mes].pn;});
+  var dTot=dm.map(function(m){return A.despachoMes[m.mes].total;});
+
+  destroyChart('ch-desp');
+  charts['ch-desp']=new Chart(document.getElementById('ch-desp'),{type:'bar',
+    data:{labels:labels,datasets:[
+      {label:'Fab. Propia',data:dFab,backgroundColor:COL.fab,borderRadius:3},
+      {label:'Importación',data:dImp,backgroundColor:COL.imp,borderRadius:3},
+      {label:'Prov. Nacional',data:dPn,backgroundColor:COL.pn,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},
+      scales:{x:Object.assign({stacked:true},gridCfg()),y:Object.assign({stacked:true,beginAtZero:true},gridCfg())}}});
+
+  destroyChart('ch-desp-tend');
+  charts['ch-desp-tend']=new Chart(document.getElementById('ch-desp-tend'),{type:'line',
+    data:{labels:labels,datasets:[{label:'Despachado',data:dTot,borderColor:COL.pn,
+      backgroundColor:'rgba(45,212,191,.12)',fill:true,tension:.3,borderWidth:2,pointBackgroundColor:COL.pn,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:gridCfg(),y:Object.assign({beginAtZero:true},gridCfg())}}});
+
+  // Ingreso vs Despacho: alinear por mes común
+  var ingDict={};
+  A.meses.forEach(function(m){ ingDict[m.mes]=A.porCanal[m.mes].total; });
+  var compIng=dm.map(function(m){return ingDict[m.mes]!==undefined?ingDict[m.mes]:null;});
+  destroyChart('ch-desp-comp');
+  charts['ch-desp-comp']=new Chart(document.getElementById('ch-desp-comp'),{
+    data:{labels:labels,datasets:[
+      {type:'bar',label:'Despachado',data:dTot,backgroundColor:'rgba(45,212,191,.55)',borderRadius:3},
+      {type:'line',label:'Ingresado',data:compIng,borderColor:COL.violet,backgroundColor:'transparent',
+       tension:.3,borderWidth:2,pointBackgroundColor:COL.violet,pointRadius:3,spanGaps:true}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12}},tooltip:{mode:'index',intersect:false}},
+      scales:{x:gridCfg(),y:Object.assign({beginAtZero:true},gridCfg())}}});
+}
+
+// ── VISTA 2 — CLIENTES ──
+function renderClientes(){
+  var A=ANALISIS, cont=document.getElementById('pg-clientes');
+  var arr=Object.keys(A.porCliente).map(function(k){return [k,A.porCliente[k]];})
+    .sort(function(a,b){return b[1]-a[1];});
+  var total=arr.reduce(function(s,x){return s+x[1];},0)||1;
+  var top=arr.slice(0,12);
+  var html='';
+  html+='<div class="note">Volumen acumulado por cliente en todo el periodo. Identifica tu concentración: qué minas sostienen la operación y cuánto dependes de cada una.</div>';
+  if(arr.length){
+    var lider=arr[0];
+    var top3=arr.slice(0,3).reduce(function(s,x){return s+x[1];},0);
+    html+='<div class="insight">🏔 Tu mayor cliente es <strong>'+lider[0]+'</strong> con <span class="big">'+fmtNum(lider[1])+'</span> prendas ('+Math.round(lider[1]/total*100)+'% del total). '+
+      'Los <strong>3 principales</strong> concentran el <span class="big">'+Math.round(top3/total*100)+'%</span> de tu volumen.</div>';
+  }
+  html+='<div class="row2">';
+  html+='<div class="card"><div class="card-t">Top 12 clientes por volumen</div><div class="card-sub">Prendas acumuladas 2025–2026</div><div class="chart-box tall"><canvas id="ch-cli"></canvas></div></div>';
+  html+='<div class="card"><div class="card-t">Concentración de cartera</div><div class="card-sub">Participación de cada cliente</div><div class="chart-box tall"><canvas id="ch-cli-pie"></canvas></div></div>';
+  html+='</div>';
+  html+='<div class="card"><div class="card-t">Detalle por cliente</div><div class="card-sub">'+arr.length+' clientes en total</div>'+
+    '<table><thead><tr><th>Cliente</th><th class="num">Prendas</th><th class="num">% total</th><th style="width:200px">Participación</th></tr></thead><tbody>';
+  var maxV=arr.length?arr[0][1]:1;
+  arr.slice(0,20).forEach(function(x){
+    html+='<tr><td style="font-weight:600">'+x[0]+'</td><td class="num">'+fmtNum(x[1])+'</td>'+
+      '<td class="num">'+(x[1]/total*100).toFixed(1)+'%</td>'+
+      '<td><div class="flex"><div class="bar-inline"><div class="bar-inline-fl" style="width:'+(x[1]/maxV*100)+'%;background:var(--cyan)"></div></div></div></td></tr>';
+  });
+  html+='</tbody></table></div>';
+  cont.innerHTML=html;
+
+  var palette=['#2dd4bf','#60a5fa','#fb923c','#a78bfa','#34d399','#fbbf24','#f472b6','#f43f5e','#22d3ee','#818cf8','#fb7185','#4ade80'];
+  destroyChart('ch-cli');
+  charts['ch-cli']=new Chart(document.getElementById('ch-cli'),{type:'bar',
+    data:{labels:top.map(function(x){return x[0];}),datasets:[{data:top.map(function(x){return x[1];}),backgroundColor:palette,borderRadius:3}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:Object.assign({beginAtZero:true},gridCfg()),y:gridCfg()}}});
+  destroyChart('ch-cli-pie');
+  charts['ch-cli-pie']=new Chart(document.getElementById('ch-cli-pie'),{type:'doughnut',
+    data:{labels:top.map(function(x){return x[0];}),datasets:[{data:top.map(function(x){return x[1];}),backgroundColor:palette,borderColor:'#121826',borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:11,font:{size:10}}}},cutout:'55%'}});
+}
+
+// ── VISTA 3 — CICLO ──
+function renderCiclo(){
+  var A=ANALISIS, cont=document.getElementById('pg-ciclo');
+  var labels=A.meses.map(function(m){return m.label;});
+  var data=A.meses.map(function(m){return A.cicloProm[m.mes];});
+  var validos=data.filter(function(v){return v!=null;});
+  var promGlobal=validos.length?Math.round(validos.reduce(function(a,b){return a+b;},0)/validos.length):0;
+  var mejor=validos.length?Math.min.apply(null,validos):0;
+  var peor=validos.length?Math.max.apply(null,validos):0;
+  var html='';
+  html+='<div class="note">Tiempo de ciclo = días entre la <strong>fecha de ingreso</strong> del pedido y su <strong>fecha de despacho real</strong>. Mide la velocidad real de tu operación de punta a punta. Solo cuenta pedidos ya despachados.</div>';
+  html+='<div class="kpis">';
+  html+=kpi('Ciclo promedio', promGlobal+' días', 'ingreso → despacho', COL.imp);
+  html+=kpi('Mejor mes', mejor+' días', 'ciclo más rápido', COL.pn);
+  html+=kpi('Peor mes', peor+' días', 'ciclo más lento', COL.fab);
+  html+=kpi('Variación', (peor-mejor)+' días', 'entre mejor y peor', COL.violet);
+  html+='</div>';
+  html+='<div class="card"><div class="card-t">Tiempo de ciclo promedio por mes</div>'+
+    '<div class="card-sub">Días desde ingreso hasta despacho — tendencia de eficiencia operativa</div>'+
+    '<div class="chart-box tall"><canvas id="ch-ciclo"></canvas></div></div>';
+  cont.innerHTML=html;
+  destroyChart('ch-ciclo');
+  charts['ch-ciclo']=new Chart(document.getElementById('ch-ciclo'),{type:'line',
+    data:{labels:labels,datasets:[{label:'Días',data:data,borderColor:COL.imp,backgroundColor:'rgba(96,165,250,.12)',
+      fill:true,tension:.3,borderWidth:2,pointBackgroundColor:COL.imp,pointRadius:4,spanGaps:true}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.parsed.y+' días promedio';}}}},
+      scales:{x:gridCfg(),y:Object.assign({beginAtZero:true},gridCfg())}}});
+}
+
+// ── VISTA 4 — PLAZOS ──
+function renderPlazos(){
+  var A=ANALISIS, cont=document.getElementById('pg-plazos');
+  var labels=A.meses.map(function(m){return m.label;});
+  var aTiempo=A.meses.map(function(m){return A.plazos[m.mes].aTiempo;});
+  var atrasado=A.meses.map(function(m){return A.plazos[m.mes].atrasado;});
+  var totalAT=aTiempo.reduce(function(a,b){return a+b;},0);
+  var totalAtr=atrasado.reduce(function(a,b){return a+b;},0);
+  var totalEval=totalAT+totalAtr;
+  var pctOk=totalEval?Math.round(totalAT/totalEval*100):0;
+  var html='';
+  html+='<div class="note">Compara la <strong>fecha de despacho real</strong> con la <strong>fecha de salida estimada</strong>. Un pedido está "a tiempo" si se despachó en o antes de lo estimado. Solo cuenta pedidos con ambas fechas registradas.</div>';
+  html+='<div class="kpis">';
+  html+=kpi('Cumplimiento global', pctOk+'%', 'pedidos a tiempo', pctOk>=70?COL.green:pctOk>=50?COL.amber:COL.red);
+  html+=kpi('A tiempo', fmtNum(totalAT), 'despachados ok', COL.green);
+  html+=kpi('Atrasados', fmtNum(totalAtr), 'fuera de plazo', COL.red);
+  html+=kpi('Evaluados', fmtNum(totalEval), 'con ambas fechas', COL.imp);
+  html+='</div>';
+  var col = pctOk>=70?COL.green:pctOk>=50?COL.amber:COL.red;
+  html+='<div class="insight">🎯 Tu cumplimiento de plazos histórico es <span class="big" style="color:'+col+'">'+pctOk+'%</span>. '+
+    (pctOk>=70?'Buen desempeño — la mayoría de pedidos sale a tiempo.':
+     pctOk>=50?'Hay margen de mejora: cerca de la mitad de los pedidos se atrasa respecto a lo estimado.':
+     'Atención: más de la mitad de los pedidos se despacha fuera del plazo estimado. Revisa la planificación de fechas.')+'</div>';
+  html+='<div class="card"><div class="card-t">Pedidos a tiempo vs atrasados por mes</div>'+
+    '<div class="card-sub">Barras apiladas — verde a tiempo, rojo atrasado</div>'+
+    '<div class="chart-box tall"><canvas id="ch-plazos"></canvas></div></div>';
+  cont.innerHTML=html;
+  destroyChart('ch-plazos');
+  charts['ch-plazos']=new Chart(document.getElementById('ch-plazos'),{type:'bar',
+    data:{labels:labels,datasets:[
+      {label:'A tiempo',data:aTiempo,backgroundColor:COL.green,borderRadius:3},
+      {label:'Atrasado',data:atrasado,backgroundColor:COL.red,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{boxWidth:12}},tooltip:{mode:'index',intersect:false}},
+      scales:{x:Object.assign({stacked:true},gridCfg()),y:Object.assign({stacked:true,beginAtZero:true},gridCfg())}}});
+}
+
+// ── VISTA 5 — TABLA ──
+function renderTabla(){
+  var A=ANALISIS, cont=document.getElementById('pg-tabla');
+  var html='';
+  html+='<div class="note">Resumen numérico mes a mes. Puedes seleccionar y copiar esta tabla a Excel para análisis adicionales.</div>';
+  html+='<div class="card"><div class="card-t">Datos consolidados por mes</div>'+
+    '<div class="card-sub">Prendas ingresadas por canal, ciclo y cumplimiento</div>'+
+    '<table><thead><tr><th>Mes</th><th class="num">Fab. Propia</th><th class="num">Importación</th>'+
+    '<th class="num">Prov. Nac.</th><th class="num">Total</th><th class="num">Ciclo (días)</th>'+
+    '<th class="num">A tiempo</th><th class="num">Atrasados</th></tr></thead><tbody>';
+  A.meses.forEach(function(m){
+    var pc=A.porCanal[m.mes], cy=A.cicloProm[m.mes], pl=A.plazos[m.mes];
+    html+='<tr><td style="font-weight:600">'+m.label+'</td>'+
+      '<td class="num" style="color:'+COL.fab+'">'+fmtNum(pc.fab)+'</td>'+
+      '<td class="num" style="color:'+COL.imp+'">'+fmtNum(pc.imp)+'</td>'+
+      '<td class="num" style="color:'+COL.pn+'">'+fmtNum(pc.pn)+'</td>'+
+      '<td class="num" style="font-weight:700">'+fmtNum(pc.total)+'</td>'+
+      '<td class="num">'+(cy!=null?cy:'—')+'</td>'+
+      '<td class="num" style="color:'+COL.green+'">'+pl.aTiempo+'</td>'+
+      '<td class="num" style="color:'+COL.red+'">'+pl.atrasado+'</td></tr>';
+  });
+  var tFab=A.meses.reduce(function(s,m){return s+A.porCanal[m.mes].fab;},0);
+  var tImp=A.meses.reduce(function(s,m){return s+A.porCanal[m.mes].imp;},0);
+  var tPn=A.meses.reduce(function(s,m){return s+A.porCanal[m.mes].pn;},0);
+  html+='<tr style="border-top:2px solid var(--line2);background:var(--bg2)">'+
+    '<td style="font-weight:800">TOTAL</td>'+
+    '<td class="num" style="font-weight:800;color:'+COL.fab+'">'+fmtNum(tFab)+'</td>'+
+    '<td class="num" style="font-weight:800;color:'+COL.imp+'">'+fmtNum(tImp)+'</td>'+
+    '<td class="num" style="font-weight:800;color:'+COL.pn+'">'+fmtNum(tPn)+'</td>'+
+    '<td class="num" style="font-weight:800">'+fmtNum(tFab+tImp+tPn)+'</td>'+
+    '<td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>';
+  html+='</tbody></table></div>';
+  cont.innerHTML=html;
+}
+
+// ── NAVEGACIÓN ──
+function nav(pg,btn){
+  document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
+  document.getElementById('pg-'+pg).classList.add('on');
+  btn.classList.add('on');
+  render(pg);
+}
+function render(pg){
+  if(!ANALISIS) return;
+  if(pg==='capacidad') renderCapacidad();
+  else if(pg==='despachos') renderDespachos();
+  else if(pg==='clientes') renderClientes();
+  else if(pg==='ciclo') renderCiclo();
+  else if(pg==='plazos') renderPlazos();
+  else if(pg==='tabla') renderTabla();
+}
+
+// ── ARRANQUE ──
+function cargarTodo(){
+  var prog=document.getElementById('prog');
+  var tareas=[];
+  FUENTES.forEach(function(f){
+    tareas.push(fetchCSV(f.P1).then(function(d){DATOS.p1[f.mes]=d;}));
+    tareas.push(fetchCSV(f.SC).then(function(d){DATOS.sc[f.mes]=d;}));
+    tareas.push(fetchCSV(f.P2).then(function(d){DATOS.p2[f.mes]=d;}));
+    tareas.push(fetchCSV(f.P3).then(function(d){DATOS.p3[f.mes]=d;}));
+  });
+  var done=0, totalT=tareas.length;
+  tareas.forEach(function(t){t.then(function(){done++; if(prog) prog.textContent='Cargando hojas… '+done+' / '+totalT;});});
+  Promise.all(tareas).then(function(){
+    analizar();
+    var mesesConDatos=FUENTES.filter(function(f){return DATOS.p1[f.mes];}).length;
+    document.getElementById('status').textContent=mesesConDatos+' meses cargados · '+fmtNum(ANALISIS.capTotal.prom)+' prendas/mes prom.';
+    renderCapacidad();
+  }).catch(function(e){
+    document.getElementById('pg-capacidad').innerHTML='<div class="loading">⚠️ Error al cargar: '+e.message+'</div>';
+  });
+}
+cargarTodo();
+</script>
+</body>
+</html>
