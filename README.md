@@ -23,6 +23,7 @@ El dashboard reproduce el flujo de producción de la empresa (pedido → origen 
 | P3 Bordado | Producción de bordado |
 | 🚚 Empaque & Despacho | Pedidos despachados, guías y partes de salida |
 | 🚨 Alertas | Situaciones que requieren atención |
+| ⏳ Pendientes | Todos los pedidos sin despachar, priorizados por urgencia de entrega, con días para vencer |
 | 🔎 Trazabilidad | Recorrido de un pedido (NP) por todas las planillas |
 
 Cada pestaña del flujo tiene un **selector Año + Mes** combinable e independiente.

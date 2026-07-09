@@ -78,3 +78,9 @@ Consulta `MODELO_DATOS.md` para ver qué campos espera cada planilla.
 ## Automatizar la actualización (opcional)
 
 Como cada hoja publicada se actualiza sola cuando editas el Sheet, no necesitas hacer nada más: al recargar el dashboard verás los datos nuevos. Solo tendrás que volver aquí cuando **agregues un mes nuevo** (para registrar su URL).
+
+## ¿Y si agrego una columna nueva a una planilla?
+
+**No necesitas regenerar ni cambiar la URL CSV.** Google actualiza la hoja publicada automáticamente, incluyendo columnas nuevas. Al recargar el dashboard ya estará disponible el dato.
+
+Lo único necesario es que el dashboard **sepa leer** esa columna. Si es una columna que el dashboard ya conoce (ver `MODELO_DATOS.md`), funcionará sola. Si es completamente nueva y quieres que se muestre o analice, hay que agregarla al mapeo en `index.html`. Por ejemplo, la columna `TALLER` (interno/externo) de P3 ya está soportada: al detectarla, la pestaña P3 muestra automáticamente el selector Interno/Externo y el análisis de subcontratación.

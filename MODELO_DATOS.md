@@ -73,7 +73,9 @@ El dashboard busca las columnas por nombre de forma flexible (ignora mayúsculas
 `N° Pedido` · `CODIGO` · `Item` · `Cant. Pedida` · `F. entrada corte` · `F. salida corte` · `F. entrada taller` · `F. salida taller real` · `Día corte` · `Día confección` · `Días atraso` · `Estado`
 
 ### P3 (Bordado)
-`NOTA DE PEDIDO` · `CODIGO` · `CLIENTE` · `PRODUCTO` · `CANTIDAD SOLICITADA` · `PROCEDENCIA` · `ENTRADA EST.` · `SALIDA EST.` · `DÍAS BORDADO` · `ACTIVIDAD` · `PARTE DE SALIDA`
+`NOTA DE PEDIDO` · `CODIGO` · `CLIENTE` · `PRODUCTO` · `CANTIDAD SOLICITADA` · `PROCEDENCIA` · `ENTRADA EST.` · `SALIDA EST.` · `DÍAS BORDADO` · `TALLER` (interno/externo) · `ACTIVIDAD` · `PARTE DE SALIDA`
+
+> La columna **TALLER** es opcional. Cuando existe (por ejemplo en P3 Copiapó), el dashboard muestra en la pestaña P3 un selector Interno/Externo y un panel que compara cuánto bordado se hizo en taller propio vs. subcontratado. Si una hoja no tiene esta columna, el selector simplemente no aparece para esa sede. Puedes agregar la columna a un Sheet existente sin regenerar su URL CSV: el dashboard la detectará al recargar.
 
 ### Inventario
 `CÓD. ARTÍCULO` · `DESCRIPCIÓN` · `CATEGORÍA` · `STOCK ACTUAL` · `ENTRADAS ACUM.` · `SALIDAS ACUM.` · `ESTADO STOCK` — y en la hoja MOVIMIENTOS: `FECHA` · `TIPO` · `NP PEDIDO` · `CÓD.` · `GUÍA`
