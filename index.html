@@ -159,8 +159,8 @@ tr:hover td{background:rgba(139,92,246,.05)}
   <div class="src">
     <span>Fuente de datos:</span>
     <span class="badge demo" id="src-badge">🟡 Datos de muestra</span>
-    <span id="src-detail" style="color:var(--mut)">Conecta tus Google Sheets para ver datos reales</span>
-    <button id="btn-connect">🔗 Conectar mis planillas</button>
+    <span id="src-detail" style="color:var(--mut)">Conectando automáticamente con tus Google Sheets...</span>
+    <button id="btn-connect">🔗 Reconectar / ver URLs</button>
   </div>
 </header>
 
@@ -1291,11 +1291,12 @@ async function loadLive(){
     if(tot<10){ throw new Error('Pocos registros leídos ('+tot+'). Revisa que las hojas estén publicadas como CSV.'); }
     DATA=live;
     renderAll();
+    const hora=new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
     badge.className='badge live';badge.textContent='🟢 Datos en vivo';
-    detail.textContent=`P1:${live.p1.length} · SC:${live.sc.length} · P2:${live.p2.length} · P3:${live.p3.length} líneas`;
+    detail.textContent=`Actualizado ${hora} · P1:${live.p1.length} · SC:${live.sc.length} · P2:${live.p2.length} · P3:${live.p3.length} líneas`;
   }catch(e){
     badge.className='badge demo';badge.textContent='🟡 Datos de muestra';
-    detail.textContent='No se pudo cargar en vivo: '+String(e.message||e).slice(0,90);
+    detail.textContent='No se pudo cargar en vivo (mostrando muestra). '+String(e.message||e).slice(0,70);
     console.error(e);
   }
 }
@@ -1326,7 +1327,18 @@ function mapP3(sede){return (row,cols,mes)=>{
     act:pick(row,cols,['ACTIVIDAD'])||'',ps:pick(row,cols,['PARTE DE SALIDA','PARTE SALIDA'])};
 };}
 
+// ═════════ ARRANQUE ═════════
+// 1) Render inicial con datos de muestra (para que se vea algo de inmediato).
 renderAll();
+
+// 2) Auto-conexión: al abrir el dashboard intenta cargar los datos en vivo automáticamente,
+//    sin necesidad de pulsar "Conectar mis planillas". Si falla, se queda con la muestra.
+//    Se puede forzar el modo muestra agregando ?demo a la URL.
+(function autoConnect(){
+  const params=new URLSearchParams(location.search);
+  if(params.has('demo')) return; // modo muestra forzado
+  setTimeout(()=>{ loadLive(); }, 300);
+})();
 
 </script>
 </body>

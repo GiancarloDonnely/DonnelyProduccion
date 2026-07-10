@@ -51,8 +51,9 @@ Cada pestaña del flujo tiene un **selector Año + Mes** combinable e independie
 
 1. Sube todos los archivos de este repositorio a tu repo de GitHub.
 2. Activa **GitHub Pages** apuntando a la rama `main` y carpeta raíz (ver `docs/PUBLICAR_PAGES.md`).
-3. Abre la URL pública. El dashboard carga con datos de muestra.
-4. Pulsa **🔗 Conectar mis planillas** y carga los datos en vivo desde tus Google Sheets (ver `docs/CONECTAR_SHEETS.md`).
+3. Abre la URL pública. **El dashboard se conecta automáticamente** a tus Google Sheets y muestra los datos en vivo (el indicador pasa a 🟢). Si la conexión falla, muestra datos de muestra y puedes reintentar con el botón **🔗 Reconectar / ver URLs**.
+
+> Para ver el dashboard en modo muestra sin conectar, agrega `?demo` al final de la URL.
 
 ---
 

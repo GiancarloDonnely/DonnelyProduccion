@@ -55,11 +55,12 @@ Edita `data/urls_planillas.json`. La estructura es:
 
 ## 3. Cargar los datos en vivo
 
-1. Abre el dashboard.
-2. Pulsa **🔗 Conectar mis planillas**.
-3. Pulsa **Cargar datos en vivo**.
+**El dashboard se conecta automáticamente al abrirlo.** No necesitas pulsar ningún botón: al cargar la página, intentará leer tus Google Sheets en vivo y el indicador de fuente de datos pasará de 🟡 *Datos de muestra* a 🟢 *Datos en vivo* con la hora de actualización.
 
-El dashboard descargará todos los CSV, combinará los meses y recalculará capacidad, alertas y trazabilidad. El indicador de fuente de datos pasará de 🟡 *Datos de muestra* a 🟢 *Datos en vivo*.
+Si prefieres revisar o cambiar las URLs, el botón **🔗 Reconectar / ver URLs** abre el formulario en cualquier momento.
+
+- Para **forzar el modo muestra** (sin intentar conectar), agrega `?demo` al final de la URL: `https://<tu-usuario>.github.io/<repo>/?demo`
+- Para **recargar los datos** más recientes del Sheet, simplemente recarga la página (F5).
 
 ---
 
