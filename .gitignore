@@ -1,0 +1,18 @@
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*~
+
+# Temporales
+*.tmp
+*.log
+
+# Datos locales sensibles (si alguna vez descargas CSV en crudo)
+*.local.csv
+/backups/
