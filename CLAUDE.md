@@ -20,15 +20,15 @@ docs/CONECTAR_SHEETS.md  → cómo publicar un Sheet como CSV y obtener su URL
 docs/PUBLICAR_PAGES.md   → cómo activar GitHub Pages
 ```
 
+## Convenciones de UI del dashboard
+
+- **Los nombres de producto (y en general el contenido de las celdas de tabla) nunca deben cortarse ni mostrarse con "..."**. Si el contenido es más ancho que la columna, la tabla debe crecer y desplazarse horizontalmente (scroll), no truncar el texto. Todas las tablas usan el contenedor `.tblwrap{overflow-x:auto}`, así que basta con no aplicar `max-width` + `overflow:hidden` + `text-overflow:ellipsis` a los `td`. Si se agrega una tabla o columna nueva, mantener este mismo criterio.
+
 ## Trabajar con GitHub en este repo
 
-**Estado actual:** esta carpeta todavía no es un repositorio git (no hay `.git/`) y no hay remoto configurado. Antes de poder empujar cambios a GitHub falta:
-1. `git init` en esta carpeta (o clonar el repo si ya existe en GitHub y traer estos archivos ahí).
-2. Configurar identidad de git si no está seteada globalmente (`git config user.name` / `user.email`).
-3. Agregar el remoto (`git remote add origin <url>`) y hacer el primer push.
-4. Activar GitHub Pages apuntando a `main` / raíz (ver `docs/PUBLICAR_PAGES.md`).
+**Estado actual:** conectado a `https://github.com/GiancarloDonnely/DonnelyProduccion`, rama `main` (tracking configurado). Identidad de git configurada localmente en este repo (`user.name`/`user.email`), no globalmente. Sigue sin estar instalado `gh` (GitHub CLI) en este equipo.
 
-No asumas que esto ya está hecho — confírmalo con `git status` / `git remote -v` antes de intentar un push.
+Antes de asumir el estado del repo en una sesión nueva, confírmalo con `git status` / `git remote -v` — no lo des por hecho de memoria.
 
 **Flujo normal de cambios una vez conectado:**
 - Cambios de contenido/lógica del dashboard → editar `index.html` directamente (es un solo archivo, sin transpilación).
