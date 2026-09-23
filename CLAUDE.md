@@ -32,7 +32,8 @@ Antes de asumir el estado del repo en una sesión nueva, confírmalo con `git st
 
 **Flujo normal de cambios una vez conectado:**
 - Cambios de contenido/lógica del dashboard → editar `index.html` directamente (es un solo archivo, sin transpilación).
-- Nueva planilla o nuevo mes → agregar su URL CSV en `data/urls_planillas.json`, no hardcodear URLs dentro de `index.html`.
+- Pestañas/meses nuevos en las planillas → correr `python scripts/sync_urls.py --check` (muestra qué cambiaría) y luego `python scripts/sync_urls.py` (aplica). Lee las páginas públicas `pubhtml` de cada libro y actualiza `data/urls_planillas.json` **y** la constante `URLS` de `index.html`. Solo agrega pestañas tipo "<mes> <año>"; MAESTRO/RESUMEN y casos ambiguos los reporta para revisión manual. Requiere que el libro esté publicado como "Documento completo".
+- Planilla completamente nueva → agregar su primera URL CSV a mano en `data/urls_planillas.json` (y en `URLS` de `index.html`); el script se encarga de las pestañas siguientes.
 - Cambios al mapeo de columnas → actualizar tanto el código (`mapP2`, `mapP3`, bloques `parseAll` en `index.html`) como `docs/MODELO_DATOS.md` para que no queden desincronizados.
 - Probar abriendo `index.html` en el navegador (o con `?demo` para modo muestra sin red) antes de commitear.
 - Commits pequeños y descriptivos; no usar `git push --force` sobre `main` salvo que el usuario lo pida explícitamente.
