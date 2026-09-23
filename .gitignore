@@ -16,3 +16,7 @@ desktop.ini
 # Datos locales sensibles (si alguna vez descargas CSV en crudo)
 *.local.csv
 /backups/
+
+# Python
+__pycache__/
+*.pyc
