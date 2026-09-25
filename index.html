@@ -170,6 +170,7 @@ tr:hover td{background:rgba(139,92,246,.05)}
   <button class="fbtn" data-sec="pendientes" style="border-color:var(--warn);color:var(--warn)">⏳ Pendientes <span class="n" id="n-pend"></span></button>
   <button class="fbtn" data-sec="fab" style="border-color:var(--fab);color:var(--fab)">🧵 Fabricación Propia <span class="n" id="n-fab"></span></button>
   <button class="fbtn" data-sec="trace">🔎 Trazabilidad <span class="n" id="n-trace"></span></button>
+  <button class="fbtn" data-sec="kpi" style="border-color:var(--ok);color:var(--ok)">📈 KPI</button>
 </nav>
 
 <!-- ═══ CAPACIDAD ═══ -->
@@ -300,6 +301,23 @@ tr:hover td{background:rgba(139,92,246,.05)}
   </div>
   <div class="tblwrap"><table id="tbl-fab"></table></div>
   <div class="pager" id="pg-fab"></div>
+</section>
+
+<!-- ═══ KPI ═══ -->
+<section id="sec-kpi">
+  <h2>📈 KPI de gestión — 2026</h2>
+  <div class="h2sub">Indicadores de cumplimiento calculados en vivo con tus planillas, <b>solo año 2026</b>. Cada uno se compara con su meta: <span class="bdg b-ok">cumple</span> <span class="bdg b-warn">cerca</span> <span class="bdg b-bad">no cumple</span>.</div>
+  <div class="kpis" id="kpi-cards" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))"></div>
+  <h3>Detalle mensual 2026</h3>
+  <div class="tblwrap"><table id="tbl-kpi"></table></div>
+  <div class="insight" style="margin-top:18px"><b>Cómo se calcula</b><br>
+    <b>1. Cumplimiento de entrega:</b> fecha de despacho real (guía) − fecha comprometida del pedido, en días; ≤ 0 cumple. Solo pedidos finalizados.<br>
+    <b>2. Tiempo de solicitud de compra:</b> fecha de solicitud de compra − fecha de ingreso del pedido (NP), promedio por línea.<br>
+    <b>3. Pedidos en proceso:</b> pedidos (NP) con alguna línea sin despachar ÷ total de pedidos × 100.<br>
+    <b>4. Pedidos atrasados:</b> pedidos entregados después de su fecha comprometida, o aún abiertos con fecha vencida, ÷ total de pedidos × 100.<br>
+    <b>5. Talleres externos:</b> salida real − salida estimada de taller, en días (confección P2, y bordado externo P3 Copiapó como referencia).<br>
+    <b>6. Pedidos finalizados:</b> pedidos con todas sus líneas despachadas ÷ total de pedidos × 100.<br>
+    <span style="color:var(--mut)">Los KPI 3 y 6 excluyen el mes en curso (aún no cerrado). Las fechas de P1 vienen con formatos mezclados (mes/día y día/mes); se resuelven con el mes de la hoja y el orden ingreso → salida → despacho, por lo que los valores son una aproximación muy cercana.</span></div>
 </section>
 
 <!-- ═══ TRAZABILIDAD ═══ -->
@@ -1175,11 +1193,167 @@ document.querySelectorAll('#fab-vista button').forEach(b=>b.onclick=()=>{
 });
 ['f-fab-sede','f-fab-est','f-fab-q'].forEach(id=>document.getElementById(id).addEventListener('input',()=>tFab&&tFab.refresh()));
 
+// ═════════ KPI DE GESTIÓN (solo 2026) ═════════
+const KPI_YEAR=2026;
+const MESES_ES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MESES_AB=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function kpiTab(mes){ // 'junio 2026' -> {y,m,key}
+  const m=String(mes||'').toLowerCase().match(/([a-záéíóúñ]+)\s+(\d{4})/); if(!m) return null;
+  const i=MESES_ES.indexOf(m[1]); return i<0?null:{y:+m[2],m:i+1,key:`${m[2]}-${String(i+1).padStart(2,'0')}`};
+}
+// Fechas posibles de un texto: [mes/día, día/mes] en ISO (una sola si es inequívoca; [] si no es fecha).
+// Las planillas mezclan ambos formatos en la misma columna, por eso no se puede asumir uno solo.
+function kpiCands(raw, iso){
+  if(raw==null||String(raw).trim()==='') return iso?[iso]:[];
+  const s=String(raw).trim(), p=n=>String(n).padStart(2,'0');
+  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return [`${m[1]}-${p(m[2])}-${p(m[3])}`];
+  m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,5})/); if(!m) return iso?[iso]:[];
+  let y=m[3]; if(y.length===5&&y.startsWith('200')) y='20'+y.slice(3);   // 20026 -> 2026
+  y = y.length>=4 ? +y.slice(0,4) : 2000+(+y);
+  const mk=(mo,d)=>{ if(mo<1||mo>12||d<1||d>31) return null;
+    const t=new Date(Date.UTC(y,mo-1,d)); return t.getUTCMonth()===mo-1?`${y}-${p(mo)}-${p(d)}`:null; };
+  const a=+m[1], b=+m[2], out=[];
+  [mk(a,b), mk(b,a)].forEach(d=>{ if(d&&!out.includes(d)) out.push(d); });
+  return out;
+}
+// Histograma de (B − A) en días usando solo filas donde ambas fechas son inequívocas
+function kpiLearn(rows,A,B,lo,hi){
+  const h={};
+  rows.forEach(r=>{ const a=kpiCands(r[A[0]],r[A[1]]), b=kpiCands(r[B[0]],r[B[1]]);
+    if(a.length===1&&b.length===1){ const d=daysBetween(a[0],b[0]); if(d!=null&&d>=lo&&d<=hi) h[d]=(h[d]||0)+1; } });
+  return h;
+}
+// Elige la lectura más verosímil respecto de una fecha de referencia (densidad observada × prior de formato)
+function kpiBest(cs,ref,hist,lo,hi,priorMd){
+  if(!cs.length) return null;
+  const inR=d=>{ const n=daysBetween(ref,d); return n!=null&&n>=lo&&n<=hi; };
+  if(cs.length===1) return (ref==null||inR(cs[0]))?cs[0]:null;
+  if(ref==null) return cs[0];
+  let bi=-1,bs=0;
+  cs.forEach((d,i)=>{ const n=daysBetween(ref,d); if(n<lo||n>hi) return;
+    let dens=0.5; for(let x=n-1;x<=n+1;x++) dens+=hist[x]||0;
+    const sc=dens*(i===0?priorMd:1-priorMd); if(sc>bs){bs=sc;bi=i;} });
+  return bi<0?null:cs[bi];
+}
+function kpiIng(cs,T){ // el ingreso cae en el mes de la hoja (o el anterior)
+  if(!cs.length) return null;
+  const dist=d=>{ const k=(+d.slice(0,4)-T.y)*12+(+d.slice(5,7)-T.m); return k===0?0:(k===-1?.5:Math.abs(k)+1); };
+  let best=cs[0]; cs.forEach(d=>{ if(dist(d)<dist(best)) best=d; }); return best;
+}
+function kpiPair(est,real){ // misma lectura en ambas fechas; se queda con la de menor |delta|
+  let best=null;
+  for(let i=0;i<2;i++){
+    const e=est[i]!==undefined?est[i]:(est.length===1?est[0]:null);
+    const r=real[i]!==undefined?real[i]:(real.length===1?real[0]:null);
+    if(e&&r){ const d=daysBetween(e,r); if(d!=null&&(best===null||Math.abs(d)<Math.abs(best))) best=d; }
+  }
+  return best;
+}
+const kpiAvg = a => a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+const fmt1 = (n,sign) => { if(n==null) return '—'; if(Math.abs(n)<.05) n=0;
+  return (sign&&n>0?'+':'')+n.toLocaleString('es-CL',{minimumFractionDigits:1,maximumFractionDigits:1}); };
+const pctf = (a,b) => b?a/b*100:null;
+
+function kpiCompute(){
+  const rows=DATA.p1||[];
+  const H_SE=kpiLearn(rows,['rIng','fing'],['rFse','fse'],-3,240);
+  const H_SC=kpiLearn(rows,['rIng','fing'],['rFsc','fsc'],-3,120);
+  const H_DR=kpiLearn(rows,['rFse','fse'],['rFdr','fdr'],-60,240);
+  // 1) líneas de P1 con fechas resueltas
+  const lines=[];
+  rows.forEach(r=>{
+    const T=kpiTab(r.mes); if(!T||T.y!==KPI_YEAR) return;
+    const ing=kpiIng(kpiCands(r.rIng,r.fing),T);
+    const fse=kpiBest(kpiCands(r.rFse,r.fse),ing,H_SE,-3,240,.74);
+    const cd=kpiCands(r.rFdr,r.fdr);
+    const fdr=fse?kpiBest(cd,fse,H_DR,-60,240,.98):kpiBest(cd,ing,H_SE,-3,400,.98);
+    const fsc=kpiBest(kpiCands(r.rFsc,r.fsc),ing,H_SC,-3,120,.93);
+    lines.push({np:r.np,key:T.key,ing,fse,fdr,fsc,fin:!!(fdr||String(r.est||'').toUpperCase().includes('FINALIZADO'))});
+  });
+  // 2) pedidos (NP dentro de su hoja mensual)
+  const g={};
+  lines.forEach(l=>{ if(l.np) (g[l.key+'|'+l.np]=g[l.key+'|'+l.np]||[]).push(l); });
+  const ped=Object.values(g).map(ls=>{
+    const fin=ls.every(l=>l.fin), fses=ls.map(l=>l.fse).filter(Boolean), fdrs=ls.map(l=>l.fdr).filter(Boolean);
+    const fseMax=fses.length?fses.reduce((a,b)=>a>b?a:b):null, fseMin=fses.length?fses.reduce((a,b)=>a<b?a:b):null;
+    const fdrMax=fdrs.length?fdrs.reduce((a,b)=>a>b?a:b):null;
+    const p={key:ls[0].key,fin,desvio:null,atrasado:null,tipo:null};
+    if(fin){ p.desvio=(fseMax&&fdrMax)?daysBetween(fseMax,fdrMax):null;
+      p.atrasado=p.desvio==null?null:p.desvio>0; if(p.atrasado) p.tipo='ent'; }
+    else { p.atrasado=fseMin?fseMin<REF:null; if(p.atrasado) p.tipo='ab'; }
+    return p;
+  });
+  // 3) talleres externos: P2 confección y P3 bordado externo Copiapó (salida real − estimada)
+  const tal=[], tal3=[];
+  (DATA.p2||[]).forEach(r=>{ const T=kpiTab(r.mes); if(!T||T.y!==KPI_YEAR||!r.np) return;
+    const d=kpiPair(kpiCands(r.rFste,r.fste),kpiCands(r.rFst,r.fst)); if(d!=null&&Math.abs(d)<=60) tal.push({key:T.key,d}); });
+  (DATA.p3||[]).forEach(r=>{ const T=kpiTab(r.mes); if(!T||T.y!==KPI_YEAR||!r.np||r.sede!=='Copiapó') return;
+    if(String(r.taller||'').toUpperCase()==='INTERNO') return;
+    const d=kpiPair(kpiCands(r.rSal,r.sal),kpiCands(r.rSalr,r.salr)); if(d!=null&&Math.abs(d)<=60) tal3.push({key:T.key,d}); });
+  const agg=keys=>{
+    const inK=x=>keys.includes(x.key);
+    const P=ped.filter(inK), L=lines.filter(inK), T=tal.filter(inK).map(x=>x.d), T3=tal3.filter(inK).map(x=>x.d);
+    const dv=P.filter(p=>p.fin&&p.desvio!=null).map(p=>p.desvio);
+    const sc=L.filter(l=>l.ing&&l.fsc).map(l=>daysBetween(l.ing,l.fsc));
+    const PF=P.filter(p=>p.fin).length;
+    return {QP:P.length,PF,PP:P.length-PF,
+      atr:P.filter(p=>p.atrasado).length, atrEnt:P.filter(p=>p.tipo==='ent').length, atrAb:P.filter(p=>p.tipo==='ab').length,
+      icN:dv.length, ic:kpiAvg(dv), icOk:dv.filter(d=>d<=0).length,
+      scN:sc.length, sc:kpiAvg(sc), scOk:sc.filter(d=>d<=1).length,
+      taN:T.length, ta:kpiAvg(T), taOk:T.filter(d=>d<=2).length,
+      t3N:T3.length, t3:kpiAvg(T3), t3Ok:T3.filter(d=>d<=2).length};
+  };
+  const keys=[...new Set(lines.map(l=>l.key))].sort();
+  const cur=REF.slice(0,7);
+  const cerrados=keys.filter(k=>k<cur);
+  return {keys,cur,months:keys.map(k=>({key:k,...agg([k])})),ytd:agg(keys),ytdCerr:agg(cerrados),nCerr:cerrados.length};
+}
+// Semáforo contra la meta de cada KPI
+function kpiSem(n,v){
+  if(v==null) return 'mut';
+  if(n===1) return v<=0?'ok':v<=2?'warn':'bad';
+  if(n===2) return v<=1?'ok':v<=2?'warn':'bad';
+  if(n===3) return v<=10?'ok':v<=15?'warn':'bad';
+  if(n===4) return v<=5?'ok':v<=10?'warn':'bad';
+  if(n===5) return v<=2?'ok':v<=3?'warn':'bad';
+  return v>=90?'ok':v>=80?'warn':'bad';
+}
+function renderKPI(){
+  const K=kpiCompute(), Y=K.ytd, C=K.ytdCerr;
+  const card=(n,titulo,val,meta,sub)=>{ const s=kpiSem(n,val.raw);
+    return `<div class="kpi a-${s}"><div class="v" style="color:var(--${s==='mut'?'mut':s})">${val.txt}</div>
+      <div class="l">${n}. ${titulo}</div><div class="sub"><b>Meta ${meta}</b></div><div class="sub">${sub}</div></div>`; };
+  const p=(a,b)=>b?` (${fmt1(pctf(a,b))}%)`:'';
+  const mesCur=K.cur.slice(5,7), curLbl=MESES_AB[+mesCur-1]+'-'+K.cur.slice(2,4);
+  const p3txt=Y.t3N?` · Bordado ext. P3 Copiapó: ${fmt1(Y.t3,true)} d (${Y.t3N})`:'';
+  document.getElementById('kpi-cards').innerHTML=
+    card(1,'Cumplimiento de entrega',{raw:Y.ic,txt:fmt1(Y.ic,true)+' d'},'≤ 0 días',`${fmt(Y.icOk)} de ${fmt(Y.icN)} pedidos a tiempo${p(Y.icOk,Y.icN)}`)+
+    card(2,'Tiempo de solicitud de compra',{raw:Y.sc,txt:fmt1(Y.sc)+' d'},'≤ 1 día',`${fmt(Y.scOk)} de ${fmt(Y.scN)} líneas en ≤ 1 día${p(Y.scOk,Y.scN)}`)+
+    card(3,'Pedidos en proceso',{raw:pctf(C.PP,C.QP),txt:fmt1(pctf(C.PP,C.QP))+'%'},'≤ 10%',`${fmt(C.PP)} de ${fmt(C.QP)} pedidos · sin ${curLbl} (en curso)`)+
+    card(4,'Pedidos atrasados',{raw:pctf(Y.atr,Y.QP),txt:fmt1(pctf(Y.atr,Y.QP))+'%'},'≤ 5%',`${fmt(Y.atr)} de ${fmt(Y.QP)} pedidos · ${fmt(Y.atrEnt)} entregados tarde + ${fmt(Y.atrAb)} abiertos vencidos`)+
+    card(5,'Talleres externos (confección)',{raw:Y.ta,txt:fmt1(Y.ta,true)+' d'},'≤ 2 días',`${fmt(Y.taOk)} de ${fmt(Y.taN)} en ≤ 2 días${p(Y.taOk,Y.taN)}${p3txt}`)+
+    card(6,'Pedidos finalizados',{raw:pctf(C.PF,C.QP),txt:fmt1(pctf(C.PF,C.QP))+'%'},'≥ 90%',`${fmt(C.PF)} de ${fmt(C.QP)} pedidos · sin ${curLbl} (en curso)`);
+  const cell=(n,v,txt,enCurso)=> enCurso?`<span class="bdg b-mut">${txt} · en curso</span>`:(v==null?'—':`<span class="bdg b-${kpiSem(n,v)}">${txt}</span>`);
+  const head=['Mes','Pedidos','1. Entrega (d)','2. Sol. compra (d)','3. En proceso','4. Atrasados','5. Talleres ext. (d)','6. Finalizados'];
+  // cc = base para los KPI 3 y 6 (en el acumulado excluye el mes en curso)
+  const fila=(lbl,m,enCurso,bold,cc=m)=>`<tr${bold?' style="font-weight:800;background:var(--panel2)"':''}><td>${lbl}</td><td>${fmt(m.QP)}</td>
+    <td>${cell(1,m.ic,fmt1(m.ic,true))}</td><td>${cell(2,m.sc,fmt1(m.sc))}</td>
+    <td>${cell(3,pctf(cc.PP,cc.QP),fmt1(pctf(cc.PP,cc.QP))+'%',enCurso)}</td><td>${cell(4,pctf(m.atr,m.QP),fmt1(pctf(m.atr,m.QP))+'%')}</td>
+    <td>${cell(5,m.ta,fmt1(m.ta,true))}</td><td>${cell(6,pctf(cc.PF,cc.QP),fmt1(pctf(cc.PF,cc.QP))+'%',enCurso)}</td></tr>`;
+  document.getElementById('tbl-kpi').innerHTML=
+    '<thead><tr>'+head.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>'+
+    K.months.map(m=>fila(MESES_AB[+m.key.slice(5,7)-1]+'-'+m.key.slice(2,4),m,m.key===K.cur)).join('')+
+    (K.months.length?fila('Acumulado 2026',Y,false,true,C):'')+
+    '</tbody>';
+  if(!K.months.length) document.getElementById('kpi-cards').innerHTML='<div class="insight warn">⏳ Aún no hay datos 2026 cargados. Espera la conexión con las planillas en vivo.</div>';
+}
+
 function renderAll(){
   renderCapacidad(); renderTrace_init();
   renderP1();
   renderPendientes();
   renderFab();
+  renderKPI();
 }
 function renderTrace_init(){
   traceIdx=buildTrace();
@@ -1409,7 +1583,12 @@ async function loadLive(){
         fdr:toDate(pick(row,cols,['F. DESPACHO REAL','F DESPACHO REAL','FECHA DESPACHO REAL','DESPACHO REAL'])),
         guia:pick(row,cols,['NRO. GUIA DESPACHO','NRO GUIA DESPACHO','N GUIA DESPACHO','GUIA DESPACHO','GUIA']),
         suc:pick(row,cols,['SUCURSAL','SEDE']),
-        est:pick(row,cols,['ESTADO'])||'', bordado:true};
+        est:pick(row,cols,['ESTADO'])||'', bordado:true,
+        // fechas en crudo (para la pestaña KPI, que resuelve formatos mes/día vs día/mes)
+        rIng:pick(row,cols,['F. INGRESO','F INGRESO','FECHA INGRESO','INGRESO']),
+        rFse:pick(row,cols,['F. SALIDA EST.','F. SALIDA EST','SALIDA EST.','SALIDA EST','FECHA SALIDA ESTIMADA']),
+        rFdr:pick(row,cols,['F. DESPACHO REAL','F DESPACHO REAL','FECHA DESPACHO REAL','DESPACHO REAL']),
+        rFsc:pick(row,cols,['F. SOLICITUD COMPRA','F SOLICITUD COMPRA','SOLICITUD COMPRA'])};
     },'P1 General');
     // SC
     live.sc=await parseAll(URLS['SC'],(row,cols,mes)=>{
@@ -1504,6 +1683,8 @@ function mapP2(sede){return (row,cols,mes)=>{
     espera_taller:(fsc&&fet)?daysBetween(fsc,fet):null,
     atraso:toNum(pick(row,cols,['DIAS ATRASO','DÍAS ATRASO','ATRASO'])),
     fenv:toDate(pick(row,cols,['FECHA ENVIO','FECHA ENVÍO','F. ENVIO'])),
+    rFst:pick(row,cols,['F. SALIDA TALLER REAL','SALIDA TALLER REAL','FECHA SALIDA TALLER REAL']),
+    rFste:pick(row,cols,['F. SALIDA TALLER EST','SALIDA TALLER EST','F. SALIDA TALLER','F SALIDA TALLER','SALIDA TALLER']),
     est:pick(row,cols,['ESTADO'])||''};
 };}
 function mapP3(sede){return (row,cols,mes)=>{
@@ -1526,7 +1707,9 @@ function mapP3(sede){return (row,cols,mes)=>{
     taller:pick(row,cols,['TALLER']),
     act:pick(row,cols,['ACTIVIDAD DE PRODUCTO','ACTIVIDAD DEL PRODUCTO','ACTIVIDAD'])||'',
     ps:pick(row,cols,['PARTE DE SALIDA','PARTE SALIDA','N PARTE SALIDA']),
-    desp:toDate(pick(row,cols,['DESPACHO','F. DESPACHO','FECHA DESPACHO']))};
+    desp:toDate(pick(row,cols,['DESPACHO','F. DESPACHO','FECHA DESPACHO'])),
+    rSal:pick(row,cols,['SALIDA EST.','SALIDA EST','SALIDA ESTIMADA','FECHA SALIDA ESTIMADA']),
+    rSalr:pick(row,cols,['SALIDA REAL','F. SALIDA REAL','FECHA SALIDA REAL','SALIDA EFECTIVA'])};
 };}
 
 // ═════════ ARRANQUE ═════════

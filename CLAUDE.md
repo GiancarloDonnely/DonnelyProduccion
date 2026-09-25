@@ -24,6 +24,12 @@ docs/PUBLICAR_PAGES.md   → cómo activar GitHub Pages
 
 - **Los nombres de producto (y en general el contenido de las celdas de tabla) nunca deben cortarse ni mostrarse con "..."**. Si el contenido es más ancho que la columna, la tabla debe crecer y desplazarse horizontalmente (scroll), no truncar el texto. Todas las tablas usan el contenedor `.tblwrap{overflow-x:auto}`, así que basta con no aplicar `max-width` + `overflow:hidden` + `text-overflow:ellipsis` a los `td`. Si se agrega una tabla o columna nueva, mantener este mismo criterio.
 
+## Pestaña KPI (solo 2026)
+
+Calcula en vivo 6 KPI de gestión contra sus metas (semáforo): entrega vs fecha comprometida (≤0 d), solicitud de compra (≤1 d), pedidos en proceso (≤10%), atrasados (≤5%), talleres externos (≤2 d) y finalizados (≥90%). Código: bloque "KPI DE GESTIÓN" de `index.html` (`kpiCompute`, `renderKPI`). Detalles a respetar al tocarlo:
+- Las fechas de P1 (y otras) vienen con formatos **mezclados mes/día y día/mes** en la misma columna; `toDate` asume día/mes. Los lectores de P1/P2/P3 guardan además la fecha en crudo (`rIng`, `rFse`, `rFdr`, `rFsc`, `rFst`, `rFste`, `rSal`, `rSalr`) y los KPI la resuelven con `kpiCands`/`kpiBest` (mes de la hoja + orden lógico + distribución observada). No reemplazar por `toDate`.
+- Los KPI 3 y 6 excluyen el mes en curso. El año está fijo en `KPI_YEAR`.
+
 ## Trabajar con GitHub en este repo
 
 **Estado actual:** conectado a `https://github.com/GiancarloDonnely/DonnelyProduccion`, rama `main` (tracking configurado). Identidad de git configurada localmente en este repo (`user.name`/`user.email`), no globalmente. Sigue sin estar instalado `gh` (GitHub CLI) en este equipo.
