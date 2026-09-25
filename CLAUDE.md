@@ -14,6 +14,7 @@ Las planillas se cruzan por dos llaves: **NP** (número de pedido) y **Código**
 
 ```
 index.html               → todo el dashboard (HTML+CSS+JS inline, sin dependencias de build)
+assets/logo-donnely.png  → logo de DONNELY (PNG transparente) usado en el encabezado; assets/favicon.png es el ícono de la pestaña
 data/urls_planillas.json → URLs CSV publicadas de cada planilla, por mes/sede
 docs/MODELO_DATOS.md     → cómo se cruzan las planillas (NP + Código)
 docs/CONECTAR_SHEETS.md  → cómo publicar un Sheet como CSV y obtener su URL

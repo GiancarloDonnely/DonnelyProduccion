@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Producción DONNELY — Capacidad & Monitoreo</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <style>
 :root{
@@ -19,6 +20,8 @@
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:14px;padding-bottom:60px}
 .wrap{max-width:1400px;margin:0 auto;padding:0 18px}
 header{padding:24px 0 8px}
+header .brand{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+header .logo{height:76px;width:auto;display:block}
 header h1{font-size:1.5rem;font-weight:800;letter-spacing:-.4px}
 header .sub{color:var(--mut);font-size:.84rem;margin-top:4px}
 
@@ -154,8 +157,13 @@ tr:hover td{background:rgba(139,92,246,.05)}
 <div class="wrap">
 
 <header>
-  <h1>📊 Dashboard Producción DONNELY</h1>
-  <div class="sub">Capacidad, pedidos entregados y pendientes · Planillas en vivo desde Google Sheets</div>
+  <div class="brand">
+    <img class="logo" src="assets/logo-donnely.png" alt="DONNELY">
+    <div>
+      <h1>Dashboard Producción DONNELY</h1>
+      <div class="sub">Capacidad, pedidos entregados y pendientes · Planillas en vivo desde Google Sheets</div>
+    </div>
+  </div>
   <div class="src">
     <span>Fuente de datos:</span>
     <span class="badge demo" id="src-badge">🟡 Datos de muestra</span>
